@@ -2,7 +2,9 @@ cmake_minimum_required(VERSION 3.1)
 
 project (DxfLib LANGUAGES CXX)
 
-set (CMAKE_CXX_STANDARD 11)
+set (CMAKE_CXX_STANDARD 17)
+set (CMAKE_CXX_STANDARD_REQUIRED ON)
+set (CMAKE_CXX_EXTENSIONS OFF)
 
 set (SRCS
 	Src/DxfDrawing.cpp
@@ -17,6 +19,7 @@ set (HDRS
 )
 
 add_library(DxfLib STATIC ${SRCS} ${HDRS})
+target_link_libraries(DxfLib fmt-header-only)
 target_include_directories(DxfLib INTERFACE Src)
 
 
@@ -34,6 +37,19 @@ target_link_libraries(DxfDrawingTest DxfLib TestHelpers)
 
 add_test(NAME DxfDrawingTest
 	COMMAND DxfDrawingTest
+)
+
+
+
+
+
+add_executable(DxfFileParser
+	Tests/DxfFileParser.cpp
+)
+target_link_libraries(DxfFileParser DxfLib)
+
+add_test(NAME DxfFileTest_polyline
+	COMMAND DxfFileParser ${CMAKE_CURRENT_SOURCE_DIR}/Tests/TestData/Polyline.dxf
 )
 
 

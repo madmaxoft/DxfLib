@@ -80,7 +80,6 @@ enum ObjectType
 	otHatch,
 	otArc,
 	otText,
-	otMText,
 	otBlock,
 	otVertex,
 	otPoint,
@@ -339,8 +338,12 @@ struct Primitive
 	std::vector<Attrib> mAttribs;
 	// std::unique_ptr<ExtendedData> mExtended;
 
+	/** Creates a new empty instance of the specified type.
+	Used mainly by the parser. */
+	Primitive(ObjectType aObjectType);
+
 	/** Creates a new instance of the specified type and the specified coords and color. */
-	Primitive(ObjectType aObjectType, Coords && aPos = {0, 0}, Color aColor = COLOR_BYLAYER, Coord aWidth = WIDTH_DEFAULT);
+	Primitive(ObjectType aObjectType, Coords && aPos, Color aColor = COLOR_BYLAYER, Coord aWidth = WIDTH_DEFAULT);
 
 	/** Deletes the instance. */
 	virtual ~Primitive() {}
@@ -361,14 +364,20 @@ using PrimitivePtrs = std::vector<PrimitivePtr>;
 struct Vertex:
 	Primitive
 {
-	explicit Vertex(Coords && aPos):
-		Primitive(otVertex, std::move(aPos))
+	using Super = Primitive;
+
+	/** Creates a new empty instance.
+	Used mainly by the parser. */
+	Vertex():
+		Super(otVertex)
 	{
 	}
 
-	Vertex(const Vertex & aOther) = default;
-	// Vertex(Vertex && aOther) = default;
-	// Vertex & operator =(const Vertex & aOther) = default;
+	/** Creates a new instance at the specified coords. */
+	explicit Vertex(Coords && aPos):
+		Super(otVertex, std::move(aPos))
+	{
+	}
 };
 
 
@@ -379,7 +388,10 @@ struct Vertex:
 struct Point:
 	Primitive
 {
-	Point(Coords && aPos):
+	using Super = Primitive;
+
+
+	Point(Coords && aPos = {0, 0}):
 		Primitive(otPoint, std::move(aPos))
 	{
 	}
@@ -412,8 +424,22 @@ struct AxisAligned2DEllipse:
 struct Line:
 	public Primitive
 {
+	using Super = Primitive;
+
+
+	/** The coords of the second point. */
 	Coords mPos2;
-	int mStyle;  // nejake styly car?
+
+	int mStyle;
+
+
+	/** Creates a new empty instance.
+	Used mainly by the parser. */
+	Line():
+		Super(otLine),
+		mPos2(0, 0)
+	{
+	}
 
 	Line(Coords && aPos1, Coords && aPos2, Color aColor = COLOR_BYLAYER, int aStyle = 0, Coord && aWidth = 0);
 
@@ -474,18 +500,39 @@ struct Text:
 {
 	using Super = Primitive;
 
-	std::string mText;
-	Coord mAngle;  // uhel, pod kterym se text vypisuje
+
+	/** The raw text stored in the DXF.
+	May contain formatting instructions. */
+	std::string mRawText;
+
+	/** The angle of the text, in degrees. */
+	Coord mAngle;
+
 	Coord mSize;
-	Coord mOblique;  // oblique (italics) angle, in degrees
+
+	/** The oblique (italics) angle, in degrees. */
+	Coord mOblique;
+
 	int mAlignment;
-	Coord mThickness;  // tloustka pisma
+
+	Coord mThickness;
+
+
+	/** Creates a new empty instance.
+	Used mainly by the parser. */
+	Text():
+		Super(otText),
+		mAngle(0),
+		mSize(1),
+		mOblique(0)
+	{
+	}
 
 	/** Creates an instance holding a copy of the specified text. */
-	Text(Coords && aPos, const std::string & aText, Coord && aSize, Coord && aAngle = 0, Color aColor = COLOR_BYLAYER, int aAlignment = alHCenter);
+	Text(Coords && aPos, const std::string & aRawText, Coord && aSize, Coord && aAngle = 0, Color aColor = COLOR_BYLAYER, int aAlignment = alHCenter);
 
 	/** Creates an instance by move-constructing the specified text. */
-	Text(Coords && aPos, std::string && aText, Coord && aSize, Coord && aAngle = 0, Color aColor = COLOR_BYLAYER, int aAlignment = alHCenter);
+	Text(Coords && aPos, std::string && aRawText, Coord && aSize, Coord && aAngle = 0, Color aColor = COLOR_BYLAYER, int aAlignment = alHCenter);
 
 	// Primitive overrides:
 	virtual Extent extent() const override;
@@ -551,7 +598,8 @@ struct MultiVertex:
 	{
 	}
 
-	/** Adds a vertex with the specified coords. */
+	/** Adds a vertex with the specified coords.
+	Returns the added vertex. */
 	void addVertex(Coords && aCoords);
 
 	/** Adds the specified vertex. */
@@ -612,10 +660,12 @@ struct LWPolyline:
 {
 	using Super = MultiVertex;
 
+	int mFlags;
 
 	/** Creates an empty instance. */
 	LWPolyline(Color aColor = COLOR_BYLAYER, Coord aWidth = 0):
-		Super(otLWPolyline, aColor, aWidth)
+		Super(otLWPolyline, aColor, aWidth),
+		mFlags(0)
 	{
 	}
 };
@@ -746,6 +796,12 @@ struct Layer
 	/** Adds the specified object to the layer.
 	If the object is modified after this call, you should call updateExtent(). */
 	void addObject(PrimitivePtr && aObject);
+
+	/** Adds the specified object to the layer.
+	If the object is modified after this call, you should call updateExtent(). */
+	void addObject(const PrimitivePtr & aObject);
+
+	const std::string & name() const { return mName; }
 } ;
 
 
@@ -791,6 +847,8 @@ struct Drawing
 	/** Returns the specified BlockDefinition.
 	If there's no such BlockDefinition, returns nullptr. */
 	std::shared_ptr<BlockDefinition> blockDefinitionByName(const std::string & aName) const;
+
+	const std::vector<std::shared_ptr<Layer>> & layers() const { return mLayers; }
 } ;
 
 

@@ -748,6 +748,18 @@ extern void DXF_DrawColorComboItem(HWND iCombo, LPDRAWITEMSTRUCT dis)
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Primitive
 
+Primitive::Primitive(ObjectType aObjectType):
+	mObjectType(aObjectType),
+	mPos({0, 0}),
+	mColor(COLOR_BYLAYER),
+	mWidth(0)
+{
+}
+
+
+
+
+
 Primitive::Primitive(ObjectType aObjectType, Coords && aPos, Color aColor, Coord aWidth):
 	mObjectType(aObjectType),
 	mPos(std::move(aPos)),
@@ -858,9 +870,9 @@ Extent Line::extent() const
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Text:
 
-Text::Text(Coords && aPos, const std::string & aText, Coord && aSize, Coord && aAngle, Color aColor, int aAlignment):
+Text::Text(Coords && aPos, const std::string & aRawText, Coord && aSize, Coord && aAngle, Color aColor, int aAlignment):
 	Super(otText, std::move(aPos), std::move(aColor)),
-	mText(aText),
+	mRawText(aRawText),
 	mAngle(std::move(aAngle)),
 	mSize(std::move(aSize)),
 	mOblique(0.0),
@@ -875,9 +887,9 @@ Text::Text(Coords && aPos, const std::string & aText, Coord && aSize, Coord && a
 
 
 
-Text::Text(Coords && aPos, std::string && aText, Coord && aSize, Coord && aAngle, Color aColor, int aAlignment):
+Text::Text(Coords && aPos, std::string && aRawText, Coord && aSize, Coord && aAngle, Color aColor, int aAlignment):
 	Super(otText, std::move(aPos), std::move(aColor)),
-	mText(std::move(aText)),
+	mRawText(std::move(aRawText)),
 	mAngle(std::move(aAngle)),
 	mSize(std::move(aSize)),
 	mOblique(0.0),
@@ -895,7 +907,8 @@ Text::Text(Coords && aPos, std::string && aText, Coord && aSize, Coord && aAngle
 Extent Text::extent() const
 {
 	// TODO: Better text length approximation
-	auto textWidth = mSize * mText.length();
+	// TODO: Strip formatting information before asking for length
+	auto textWidth = mSize * mRawText.length();
 
 	// TODO: Extent should follow the text alignment
 	return {mPos - Coords(textWidth / 2, mSize), mPos + Coords(textWidth / 2, mSize)};
@@ -1149,6 +1162,15 @@ PrimitivePtr Layer::removeObjByIndex(size_t aIndex)
 void Layer::addObject(PrimitivePtr && aObject)
 {
 	mObjects.push_back(std::move(aObject));
+}
+
+
+
+
+
+void Layer::addObject(const PrimitivePtr & aObject)
+{
+	mObjects.push_back(aObject);
 }
 
 
