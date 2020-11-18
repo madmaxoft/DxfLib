@@ -58,6 +58,17 @@ class Parser
 
 
 
+	/** Unified entrypoint for when an error occurs.
+	Put a debugger breakpoint here in order to debug mysterious errors. */
+	[[noreturn]] void throwError(unsigned aLineNumber, std::string && aMessage)
+	{
+		throw Error(aLineNumber, std::move(aMessage));
+	}
+
+
+
+
+
 	/** Returns a copy of the string with the whitespace removed from the front and end. */
 	std::string trimWhitespace(const std::string & aStr)
 	{
@@ -100,7 +111,7 @@ class Parser
 	{
 		if (aStr.empty())
 		{
-			throw Error(mCurrentLine, "invalid number: <empty string>");
+			throwError(mCurrentLine, "invalid number: <empty string>");
 		}
 
 		size_t i = 0;
@@ -121,17 +132,17 @@ class Parser
 			{
 				if ((aStr[i] < '0') || (aStr[i] > '9'))
 				{
-					throw Error(mCurrentLine, fmt::format("Invalid character in number: \"{}\"", aStr[i]));
+					throwError(mCurrentLine, fmt::format("Invalid character in number: \"{}\"", aStr[i]));
 				}
 				if (std::numeric_limits<T>::max() / 10 < result)
 				{
-					throw Error(mCurrentLine, "Number is too large.");
+					throwError(mCurrentLine, "Number is too large.");
 				}
 				result *= 10;
 				T digit = static_cast<T>(aStr[i] - '0');
 				if (std::numeric_limits<T>::max() - digit < result)
 				{
-					throw Error(mCurrentLine, "Number is too large.");
+					throwError(mCurrentLine, "Number is too large.");
 				}
 				result += digit;
 			}
@@ -141,24 +152,24 @@ class Parser
 			// Unsigned result cannot be signed!
 			if (!std::numeric_limits<T>::is_signed)
 			{
-				throw Error(mCurrentLine, "Unexpected negative number");
+				throwError(mCurrentLine, "Unexpected negative number");
 			}
 
 			for (size_t size = aStr.size(); i < size; i++)
 			{
 				if ((aStr[i] < '0') || (aStr[i] > '9'))
 				{
-					throw Error(mCurrentLine, fmt::format("Invalid character in number: \"{}\"", aStr[i]));
+					throwError(mCurrentLine, fmt::format("Invalid character in number: \"{}\"", aStr[i]));
 				}
 				if (std::numeric_limits<T>::min() / 10 > result)
 				{
-					throw Error(mCurrentLine, "Number is too large.");
+					throwError(mCurrentLine, "Number is too large.");
 				}
 				result *= 10;
 				T digit = static_cast<T>(aStr[i] - '0');
 				if (std::numeric_limits<T>::min() + digit > result)
 				{
-					throw Error(mCurrentLine, "Number is too large.");
+					throwError(mCurrentLine, "Number is too large.");
 				}
 				result -= digit;
 			}
@@ -175,7 +186,7 @@ class Parser
 	{
 		if (aStr.empty())
 		{
-			throw Error(mCurrentLine, "invalid number: <empty string>");
+			throwError(mCurrentLine, "invalid number: <empty string>");
 		}
 
 		try
@@ -185,7 +196,7 @@ class Parser
 		}
 		catch (const std::exception & exc)
 		{
-			throw Error(mCurrentLine, fmt::format("Cannot parse number: {}", exc.what()));
+			throwError(mCurrentLine, fmt::format("Cannot parse number: {}", exc.what()));
 		}
 	}
 
@@ -206,7 +217,10 @@ class Parser
 			mStream.read(&ch, 1);
 			if (!mStream.good())
 			{
-				throw Error(mCurrentLine, "Incomplete DXF input data.");
+				throwError(mCurrentLine, fmt::format(
+					"Incomplete DXF input data while parsing group code, got so far: \"{}\".",
+					groupCodeStr
+				));
 			}
 			if (ch == '\n')
 			{
@@ -227,9 +241,16 @@ class Parser
 		{
 			char ch;
 			mStream.read(&ch, 1);
+			if (mStream.eof())
+			{
+				break;
+			}
 			if (!mStream.good())
 			{
-				throw Error(mCurrentLine, "Incomplete DXF input data.");
+				throwError(mCurrentLine, fmt::format(
+					"Incomplete DXF input data while parsing value, got so far: \"{}\".",
+					value
+				));
 			}
 			if (ch == '\n')
 			{
@@ -239,6 +260,10 @@ class Parser
 		}
 
 		mCurrentLine += 2;
+
+		// DEBUG:
+		// fmt::print("Read next pair: {}, \"{}\"\n", groupCode, value);
+
 		return {groupCode, value};
 	}
 
@@ -264,7 +289,7 @@ class Parser
 
 
 
-	/** Skips input data from mStream until a section end (0 / "endsec") is encountered. */
+	/** Skips input data from mStream until a section end {0, ENDSEC} is encountered. */
 	void skipUntilSectionEnd()
 	{
 		for (;;)
@@ -284,7 +309,8 @@ class Parser
 
 
 
-	/** Parses the entire TABLES section of the DXF data. */
+	/** Parses the entire TABLES section of the DXF data.
+	Finishes after encountering the {0, ENDSEC} pair. */
 	void parseTablesSection()
 	{
 		for (;;)
@@ -304,13 +330,13 @@ class Parser
 					}
 					else
 					{
-						throw Error(mCurrentLine, "Unexpected item in TABLES section");
+						throwError(mCurrentLine, "Unexpected item in TABLES section");
 					}
 					break;
 				}
 				default:
 				{
-					throw Error(mCurrentLine, "Unexpected group code.");
+					throwError(mCurrentLine, "Unexpected group code.");
 				}
 			}
 		}
@@ -319,7 +345,8 @@ class Parser
 
 
 
-	/** Parses a single table out of the TABLES section of the DXF data. */
+	/** Parses a single table out of the TABLES section of the DXF data.
+	Finishes after encountering the {0, ENDTAB} pair*/
 	void parseSingleTable()
 	{
 		for (;;)
@@ -339,7 +366,7 @@ class Parser
 				{
 					if (isSameStringIgnoreCase(value, "layer"))
 					{
-						parseLayerTable();
+						return parseLayerTable();
 					}
 					// No error on unknown values, we skip tables other than layer
 					break;
@@ -352,7 +379,8 @@ class Parser
 
 
 
-	/** Parses the LAYER table contents. */
+	/** Parses the LAYER table contents.
+	Finishes after encountering the {0, ENDTAB} pair. */
 	void parseLayerTable()
 	{
 		std::shared_ptr<Layer> currentLayer;
@@ -377,7 +405,7 @@ class Parser
 				{
 					if (currentLayer != nullptr)
 					{
-						throw Error(mCurrentLine, "Layer entry has a duplicate name (group 2)");
+						throwError(mCurrentLine, "Layer entry has a duplicate name (group 2)");
 					}
 					currentLayer = mDrawing->addLayer(value);
 					break;
@@ -576,7 +604,7 @@ class Parser
 
 						default:
 						{
-							throw Error(mCurrentLine, fmt::format("Unhandled object type with groupcode 10: {}", cur->mObjectType));
+							throwError(mCurrentLine, fmt::format("Unhandled object type with groupcode 10: {}", cur->mObjectType));
 							break;
 						}
 					}
@@ -628,7 +656,7 @@ class Parser
 
 						default:
 						{
-							throw Error(mCurrentLine, fmt::format("Unhandled object type with groupcode 20: {}", cur->mObjectType));
+							throwError(mCurrentLine, fmt::format("Unhandled object type with groupcode 20: {}", cur->mObjectType));
 						}
 					}
 					break;
@@ -650,7 +678,7 @@ class Parser
 
 						default:
 						{
-							throw Error(mCurrentLine, fmt::format("Unhandled object type with groupcode 21: {}", cur->mObjectType));
+							throwError(mCurrentLine, fmt::format("Unhandled object type with groupcode 21: {}", cur->mObjectType));
 							break;
 						}
 					}
@@ -677,7 +705,7 @@ class Parser
 
 						default:
 						{
-							throw Error(mCurrentLine, fmt::format("Unhandled object type with groupcode 30: {}", cur->mObjectType));
+							throwError(mCurrentLine, fmt::format("Unhandled object type with groupcode 30: {}", cur->mObjectType));
 							break;
 						}
 					}
@@ -700,7 +728,7 @@ class Parser
 
 						default:
 						{
-							throw Error(mCurrentLine, fmt::format("Unhandled object type with groupcode 31: {}", cur->mObjectType));
+							throwError(mCurrentLine, fmt::format("Unhandled object type with groupcode 31: {}", cur->mObjectType));
 							break;
 						}
 					}
@@ -736,7 +764,7 @@ class Parser
 						case otPoint:
 						default:
 						{
-							throw Error(mCurrentLine, fmt::format("Unhandled object type with groupcode 38: {}", cur->mObjectType));
+							throwError(mCurrentLine, fmt::format("Unhandled object type with groupcode 38: {}", cur->mObjectType));
 						}
 					}
 					break;
@@ -775,7 +803,7 @@ class Parser
 						case otPoint:
 						default:
 						{
-							throw Error(mCurrentLine, fmt::format("Unhandled object type with groupcode 70: {}", cur->mObjectType));
+							throwError(mCurrentLine, fmt::format("Unhandled object type with groupcode 70: {}", cur->mObjectType));
 						}
 					}  // switch (cur->mObjectType)
 					break;
@@ -1157,7 +1185,7 @@ public:
 	{
 		if (!mStream.good())
 		{
-			throw Error(1, "Cannot read DXF data.");
+			throwError(1, "Cannot read DXF data.");
 		}
 		for (;;)
 		{
@@ -1234,6 +1262,22 @@ std::shared_ptr<Drawing> parse(std::istream & aStream)
 	Parser parser(aStream);
 	parser.parse(true);
 	return parser.drawing();
+}
+
+
+
+
+
+std::vector<std::string> parseLayerList(std::istream & aStream)
+{
+	Parser parser(aStream);
+	parser.parse(false);
+	std::vector<std::string> res;
+	for (const auto & lay: parser.drawing()->layers())
+	{
+		res.push_back(lay->name());
+	}
+	return res;
 }
 
 

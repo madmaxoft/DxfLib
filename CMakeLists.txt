@@ -48,8 +48,12 @@ add_executable(DxfFileParser
 )
 target_link_libraries(DxfFileParser DxfLib)
 
-add_test(NAME DxfFileTest_polyline
+add_test(NAME DxfFileTest_Polyline
 	COMMAND DxfFileParser ${CMAKE_CURRENT_SOURCE_DIR}/Tests/TestData/Polyline.dxf
+)
+
+add_test(NAME DxfFileTest_Polyline3D
+	COMMAND DxfFileParser ${CMAKE_CURRENT_SOURCE_DIR}/Tests/TestData/Polyline3D.dxf
 )
 
 
