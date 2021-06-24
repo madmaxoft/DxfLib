@@ -2,7 +2,7 @@
 
 // Tests the DxfWriter class
 
-#include "DxfDrawing.h"
+#include "DxfDrawing.hpp"
 #include "TestHelpers.h"
 
 

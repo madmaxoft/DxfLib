@@ -2,9 +2,22 @@
 
 // Tests the DxfParser class
 
-#include "DxfParser.h"
+#include "DxfParser.hpp"
 #include <sstream>
 #include "TestHelpers.h"
+
+
+
+
+
+static void testEmpty()
+{
+	auto dataSource = [](char * aDestBuffer, size_t aSize)
+	{
+		return 0;
+	};
+	auto drawing = Dxf::Parser::parse(dataSource);
+}
 
 
 
@@ -16,7 +29,7 @@ static void testMinimal()
 
 	static const char * minimal = " \t 0 \t  \nEOF";
 	std::stringstream ss(minimal);
-	auto drawing = Dxf::Parser::parse(ss);
+	auto drawing = Dxf::Parser::parse(Dxf::Parser::dataSourceFromStdStream(ss));
 	TEST_NOTNULL(drawing);
 }
 
@@ -30,7 +43,7 @@ static void testInvalid()
 
 	static const char * invalid = "a\nEOF";
 	std::stringstream ssInvalid(invalid);
-	TEST_THROWS(Dxf::Parser::parse(ssInvalid), Dxf::Parser::Error);
+	TEST_THROWS(Dxf::Parser::parse(Dxf::Parser::dataSourceFromStdStream(ssInvalid)), Dxf::Parser::Error);
 }
 
 
@@ -43,7 +56,7 @@ static void testIncomplete()
 
 	static const char * incomplete = "0\nE";
 	std::stringstream ssIncomplete(incomplete);
-	TEST_THROWS(Dxf::Parser::parse(ssIncomplete), Dxf::Parser::Error);
+	TEST_THROWS(Dxf::Parser::parse(Dxf::Parser::dataSourceFromStdStream(ssIncomplete)), Dxf::Parser::Error);
 }
 
 
@@ -60,13 +73,13 @@ static void testLayerList()
 		"0\nLAYER\n2\nLayer2\n62\n3\n"
 		"0\nENDTAB\n0\nENDSEC\n0\nEOF\n";
 	std::stringstream ss(dxf);
-	auto layerList = Dxf::Parser::parseLayerList(ss);
+	auto layerList = Dxf::Parser::parseLayerList(Dxf::Parser::dataSourceFromStdStream(ss));
 	TEST_EQUAL(layerList.size(), 2u);
 	TEST_EQUAL(layerList[0], "Layer1");
 	TEST_EQUAL(layerList[1], "Layer2");
 
 	ss.seekg(0);
-	auto drawing = Dxf::Parser::parse(ss);
+	auto drawing = Dxf::Parser::parse(Dxf::Parser::dataSourceFromStdStream(ss));
 	TEST_NOTNULL(drawing);
 	TEST_EQUAL(drawing->layers().size(), 2u);
 	TEST_EQUAL(drawing->layers()[0]->name(), "Layer1");
@@ -96,13 +109,13 @@ static void testPolyline()
 		"0\nSEQEND\n0\nENDSEC\n"
 		"0\nEOF";
 	std::stringstream ss(dxf);
-	auto drawing = Dxf::Parser::parse(ss);
+	auto drawing = Dxf::Parser::parse(Dxf::Parser::dataSourceFromStdStream(ss));
 	TEST_NOTNULL(drawing);
-	TEST_EQUAL(drawing->layers().size(), 1u);
+	TEST_EQUAL(drawing->layers().size(), 1);
 	auto layer1 = drawing->layerByName("Layer1");
 	TEST_NOTNULL(layer1);
 	TEST_EQUAL(layer1->mName, "Layer1");
-	TEST_EQUAL(layer1->mObjects.size(), 1u);
+	TEST_EQUAL(layer1->mObjects.size(), 1);
 	auto obj1 = layer1->mObjects[0];
 	TEST_EQUAL(obj1->mObjectType, Dxf::otPolyline);
 	auto pl1 = std::static_pointer_cast<Dxf::Polyline>(obj1);
@@ -114,6 +127,7 @@ static void testPolyline()
 
 
 IMPLEMENT_TEST_MAIN("DxfParserTest",
+	testEmpty();
 	testLayerList();
 	testMinimal();
 	testPolyline();

@@ -2,7 +2,7 @@
 
 // Provides basic tests for the DxfDrawing class
 
-#include "DxfDrawing.h"
+#include "DxfDrawing.hpp"
 #include "TestHelpers.h"
 
 

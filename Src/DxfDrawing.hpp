@@ -1,3 +1,5 @@
+#pragma once
+
 #include <string>
 #include <memory>
 #include <cstdint>
@@ -21,7 +23,7 @@ namespace Dxf
 // fwd:
 using Coord = double;
 using Color = int;
-struct Drawing;
+class Drawing;
 
 
 
@@ -90,8 +92,9 @@ enum ObjectType
 
 
 /** The coords of a single point in the 3D space. */
-struct Coords
+class Coords
 {
+public:
 	Coord mX;
 	Coord mY;
 	Coord mZ;
@@ -169,8 +172,9 @@ struct Coords
 
 /** A simple axis-aligned bounding box that can also be empty.
 Provides operations to modify and query the box. */
-struct Extent
+class Extent
 {
+public:
 	bool mIsEmpty;
 	Coords mMin;
 	Coords mMax;
@@ -290,8 +294,9 @@ struct Extent
 
 
 
-struct Attrib
+class Attrib
 {
+public:
 	std::string mName;
 	std::string mValue;
 	Coord mFontSize;
@@ -303,8 +308,9 @@ struct Attrib
 
 
 
-struct ExtendedData
+class ExtendedData
 {
+public:
 	std::string mString;
 	std::string mApplicationName;
 	bool mControlString;
@@ -329,8 +335,9 @@ struct ExtendedData
 
 
 /** The base type for all objects within the Drawing / Layer / BlockDefinition. */
-struct Primitive
+class Primitive
 {
+public:
 	ObjectType mObjectType;
 	Coords mPos;
 	Color mColor;
@@ -361,10 +368,13 @@ using PrimitivePtrs = std::vector<PrimitivePtr>;
 
 
 /** Representation of the VERTEX dxf data. */
-struct Vertex:
-	Primitive
+class Vertex:
+	public Primitive
 {
 	using Super = Primitive;
+
+
+public:
 
 	/** Creates a new empty instance.
 	Used mainly by the parser. */
@@ -385,11 +395,13 @@ struct Vertex:
 
 
 /** Representation of the POINT dxf data. */
-struct Point:
-	Primitive
+class Point:
+	public Primitive
 {
 	using Super = Primitive;
 
+
+public:
 
 	Point(Coords && aPos = {0, 0}):
 		Primitive(otPoint, std::move(aPos))
@@ -402,10 +414,13 @@ struct Point:
 
 
 /** Representation of an axis-aligned 2D ellipse. */
-struct AxisAligned2DEllipse:
-	Primitive
+class AxisAligned2DEllipse:
+	public Primitive
 {
 	using Super = Primitive;
+
+
+public:
 
 	Coord mDiameterX, mDiameterY;
 
@@ -421,11 +436,13 @@ struct AxisAligned2DEllipse:
 
 
 /** Representation of the LINE dxf data. */
-struct Line:
+class Line:
 	public Primitive
 {
 	using Super = Primitive;
 
+
+public:
 
 	/** The coords of the second point. */
 	Coords mPos2;
@@ -453,11 +470,13 @@ struct Line:
 
 /** Representation of a simple 2D circle.
 The Primitive's mPos specifies the circle's center. */
-struct Circle:
+class Circle:
 	public Primitive
 {
 	using Super = Primitive;
 
+
+public:
 
 	/** The radius of the circle. */
 	Coord mRadius;
@@ -475,11 +494,13 @@ struct Circle:
 
 /** Representation of an arc.
 The Primitive's mPos specifies the arc's center. */
-struct Arc:
+class Arc:
 	public Primitive
 {
 	using Super = Primitive;
 
+
+public:
 
 	Coord mDiameter;
 	Coord mStartAngle;
@@ -495,11 +516,13 @@ struct Arc:
 
 
 
-struct Text:
+class Text:
 	public Primitive
 {
 	using Super = Primitive;
 
+
+public:
 
 	/** The raw text stored in the DXF.
 	May contain formatting instructions. */
@@ -543,8 +566,9 @@ struct Text:
 
 
 /** Contains the definition of a single block ("insert"). */
-struct BlockDefinition
+class BlockDefinition
 {
+public:
 	PrimitivePtrs mObjects;
 	std::string mName;
 
@@ -562,10 +586,13 @@ using BlockDefinitions = std::vector<std::shared_ptr<BlockDefinition>>;
 
 
 /** Representation of the block ("insert") that makes a "stamp" from a predefined list of elements. */
-struct Block:
+class Block:
 	public Primitive
 {
 	using Super = Primitive;
+
+
+public:
 
 	std::shared_ptr<BlockDefinition> mDefinition;
 	Coord mAngle;
@@ -584,10 +611,13 @@ struct Block:
 /** Common ancestor for objects that hold a variable number of vertices in them: Polyline, LWPolyline and Polygon.
 Handles the storage of the vertices.
 All vertices are stored in mVertices; the coords stored in the base Primitive's mPos are not used. */
-struct MultiVertex:
+class MultiVertex:
 	public Primitive
 {
 	using Super = Primitive;
+
+
+public:
 
 	std::vector<Vertex> mVertices;
 
@@ -634,10 +664,13 @@ enum PolylineFlags
 
 
 /** Representation of the POLYLINE dxf data. */
-struct Polyline:
+class Polyline:
 	public MultiVertex
 {
 	using Super = MultiVertex;
+
+
+public:
 
 	PolylineFlags mFlags;
 
@@ -655,10 +688,13 @@ struct Polyline:
 
 
 /** Representation of the LWPOLYLINE (lightweight polyline) dxf data. */
-struct LWPolyline:
+class LWPolyline:
 	public MultiVertex
 {
 	using Super = MultiVertex;
+
+
+public:
 
 	int mFlags;
 
@@ -675,10 +711,13 @@ struct LWPolyline:
 
 
 /** Representation of a 2D polygon dxf data. */
-struct Polygon:
+class Polygon:
 	public MultiVertex
 {
 	using Super = MultiVertex;
+
+
+public:
 
 	/** Creates an empty instance */
 	Polygon(Color aColor = COLOR_BYLAYER, Coord aWidth = 0):
@@ -692,11 +731,13 @@ struct Polygon:
 
 
 /** Represents a SOLID dxf object (filled 2D polygon), specified using 3 or 4 points. */
-struct Solid:
-	Primitive
+class Solid:
+	public Primitive
 {
 	using Super = Primitive;
 
+
+public:
 
 	/** Coords of the second point. */
 	Coords mPos2;
@@ -730,9 +771,14 @@ struct Solid:
 
 
 /** Represents a 3D polygon, using 4 points. */
-struct TetraFace:
-	Primitive
+class TetraFace:
+	public Primitive
 {
+	using Super = Primitive;
+
+
+public:
+
 	/** Coords of the second point. */
 	Coords mPos2;
 
@@ -755,9 +801,10 @@ struct TetraFace:
 
 
 /** Represents an entire layer of a drawing.
-Contains (and co-owns) the objects that belong to this layer. */
-struct Layer
+Contains (and owns) the objects that belong to this layer. */
+class Layer
 {
+public:
 	/** The objects contained within the layer. */
 	PrimitivePtrs mObjects;
 
@@ -810,8 +857,10 @@ struct Layer
 
 /** Represents the entire Dxf drawing.
 Contains the layers for the drawing, and block definitions*/
-struct Drawing
+class Drawing
 {
+public:
+
 	using LayerAlreadyExists = std::runtime_error;
 	using NoSuchLayer = std::runtime_error;
 	using BlockDefinitionAlreadyExists = std::runtime_error;

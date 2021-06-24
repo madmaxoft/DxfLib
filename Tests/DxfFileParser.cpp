@@ -1,6 +1,6 @@
 #include <iostream>
 #include <fstream>
-#include "DxfParser.h"
+#include "DxfParser.hpp"
 
 
 
@@ -17,7 +17,7 @@ int main(int argc, char * argv[])
 	std::shared_ptr<Dxf::Drawing> drawing;
 	try
 	{
-		drawing = Dxf::Parser::parse(f);
+		drawing = Dxf::Parser::parse(Dxf::Parser::dataSourceFromStdStream(f));
 	}
 	catch (const Dxf::Parser::Error & exc)
 	{

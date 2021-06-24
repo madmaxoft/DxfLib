@@ -2,7 +2,7 @@
 
 // Implements the Dxf::Parser class representing the DXF file format parser
 
-#include "DxfParser.h"
+#include "DxfParser.hpp"
 #include <iostream>
 #include "fmt/format.h"
 
@@ -10,9 +10,7 @@
 
 
 
-namespace Dxf
-{
-namespace Parser
+namespace Dxf::Parser
 {
 
 
@@ -44,8 +42,8 @@ static bool isSameStringIgnoreCase(const std::string & aStr1, const char * aLowe
 
 class Parser
 {
-	/** The stream from which the data is read. */
-	std::istream & mStream;
+	/** The LineExtractor that reads the data source and splits it into individual lines. */
+	LineExtractor mLineExtractor;
 
 	/** The line currently being processed from the stream.
 	Used for reporting errors. */
@@ -208,62 +206,9 @@ class Parser
 	Assumes that mStream converts CRLF to LF upon reading. */
 	std::pair<int, std::string> readNext()
 	{
-		// Read the group code:
-		std::string groupCodeStr;
-		groupCodeStr.reserve(20);
-		for (;;)
-		{
-			char ch;
-			mStream.read(&ch, 1);
-			if (!mStream.good())
-			{
-				throwError(mCurrentLine, fmt::format(
-					"Incomplete DXF input data while parsing group code, got so far: \"{}\".",
-					groupCodeStr
-				));
-			}
-			if (ch == '\n')
-			{
-				break;
-			}
-			if (std::isspace(static_cast<unsigned char>(ch)))
-			{
-				continue;
-			}
-			groupCodeStr.push_back(ch);
-		}
+		auto groupCodeStr = mLineExtractor.getNextLine();
 		auto groupCode = stringToInt<int>(groupCodeStr);
-
-		// Read the value:
-		std::string value;
-		value.reserve(2050);  // DXF spec says most values should fit this
-		for (;;)
-		{
-			char ch;
-			mStream.read(&ch, 1);
-			if (mStream.eof())
-			{
-				break;
-			}
-			if (!mStream.good())
-			{
-				throwError(mCurrentLine, fmt::format(
-					"Incomplete DXF input data while parsing value, got so far: \"{}\".",
-					value
-				));
-			}
-			if (ch == '\n')
-			{
-				break;
-			}
-			value.push_back(ch);
-		}
-
-		mCurrentLine += 2;
-
-		// DEBUG:
-		// fmt::print("Read next pair: {}, \"{}\"\n", groupCode, value);
-
+		auto value = mLineExtractor.getNextLine();
 		return {groupCode, value};
 	}
 
@@ -437,8 +382,8 @@ class Parser
 
 
 	/** Parses the entities from mStream.
-	If aParentBlock is valid, the entities are stored within that BlockDefinition. */
-	void parseEntitiesSection(BlockDefinition * aParentBlock)
+	If aParentBlockDef is valid, the entities are stored within that BlockDefinition. */
+	void parseEntitiesSection(BlockDefinition * aParentBlockDef)
 	{
 		PrimitivePtr last;
 		PrimitivePtr cur;
@@ -453,7 +398,12 @@ class Parser
 				{
 					if (cur != nullptr)
 					{
-						if ((last && (last->mObjectType == otPolyline) && (cur->mObjectType == otVertex) && isPolylineSequence))
+						if (
+							(last != nullptr) &&
+							(last->mObjectType == otPolyline) &&
+							(cur->mObjectType == otVertex) &&
+							isPolylineSequence
+						)
 						{
 							std::static_pointer_cast<Polyline>(last)->addVertex(std::move(*std::static_pointer_cast<Vertex>(cur)));
 							cur.reset();
@@ -461,9 +411,9 @@ class Parser
 						else
 						{
 							last = cur;
-							if (aParentBlock != nullptr)
+							if (aParentBlockDef != nullptr)
 							{
-								aParentBlock->mObjects.push_back(cur);
+								aParentBlockDef->mObjects.push_back(cur);
 							}
 						}  // not poly vertex
 						cur = nullptr;
@@ -1169,9 +1119,8 @@ class Parser
 
 public:
 
-	Parser(std::istream & aStream):
-		mStream(aStream),
-		mCurrentLine(1),
+	Parser(DataSource && aDataSource):
+		mLineExtractor(std::move(aDataSource)),
 		mDrawing(new Drawing)
 	{
 	}
@@ -1180,13 +1129,9 @@ public:
 
 
 
-	/** Parses the data from mStream into mDrawing. */
+	/** Parses the data from mLineExtractor into mDrawing. */
 	void parse(bool aShouldContinueAfterLayerList)
 	{
-		if (!mStream.good())
-		{
-			throwError(1, "Cannot read DXF data.");
-		}
 		for (;;)
 		{
 			auto [groupCode, value] = readNext();
@@ -1257,9 +1202,9 @@ public:
 
 
 
-std::shared_ptr<Drawing> parse(std::istream & aStream)
+std::shared_ptr<Drawing> parse(DataSource && aDataSource)
 {
-	Parser parser(aStream);
+	Parser parser(std::move(aDataSource));
 	parser.parse(true);
 	return parser.drawing();
 }
@@ -1268,9 +1213,9 @@ std::shared_ptr<Drawing> parse(std::istream & aStream)
 
 
 
-std::vector<std::string> parseLayerList(std::istream & aStream)
+std::vector<std::string> parseLayerList(DataSource && aDataSource)
 {
-	Parser parser(aStream);
+	Parser parser(std::move(aDataSource));
 	parser.parse(false);
 	std::vector<std::string> res;
 	for (const auto & lay: parser.drawing()->layers())
@@ -1284,5 +1229,4 @@ std::vector<std::string> parseLayerList(std::istream & aStream)
 
 
 
-}  // namespace Parser
-}  // namespave Dxf
+}  // namespace Dxf::Parser

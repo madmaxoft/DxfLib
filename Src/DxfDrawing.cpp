@@ -1,8 +1,7 @@
-// DxfDrawing.cpp
+#include "DxfDrawing.hpp"
 
 #include <cmath>
 
-#include "DxfDrawing.h"
 
 /*
 // NOTE on colors in a DXF file:
