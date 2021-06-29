@@ -1,5 +1,7 @@
 #include "DataSource.hpp"
+
 #include <istream>
+#include <cstring>
 
 
 

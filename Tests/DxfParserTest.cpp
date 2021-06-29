@@ -10,10 +10,18 @@
 
 
 
+#define UNUSED(X) ((void)X)
+
+
+
+
+
 static void testEmpty()
 {
 	auto dataSource = [](char * aDestBuffer, size_t aSize)
 	{
+		UNUSED(aDestBuffer);
+		UNUSED(aSize);
 		return 0;
 	};
 	auto drawing = Dxf::Parser::parse(dataSource);
@@ -83,9 +91,9 @@ static void testLayerList()
 	TEST_NOTNULL(drawing);
 	TEST_EQUAL(drawing->layers().size(), 2u);
 	TEST_EQUAL(drawing->layers()[0]->name(), "Layer1");
-	TEST_EQUAL(drawing->layers()[0]->mDefaultColor, 7);
+	TEST_EQUAL(drawing->layers()[0]->defaultColor(), 7);
 	TEST_EQUAL(drawing->layers()[1]->name(), "Layer2");
-	TEST_EQUAL(drawing->layers()[1]->mDefaultColor, 3);
+	TEST_EQUAL(drawing->layers()[1]->defaultColor(), 3);
 }
 
 
@@ -111,12 +119,12 @@ static void testPolyline()
 	std::stringstream ss(dxf);
 	auto drawing = Dxf::Parser::parse(Dxf::Parser::dataSourceFromStdStream(ss));
 	TEST_NOTNULL(drawing);
-	TEST_EQUAL(drawing->layers().size(), 1);
+	TEST_EQUAL(drawing->layers().size(), 1u);
 	auto layer1 = drawing->layerByName("Layer1");
 	TEST_NOTNULL(layer1);
-	TEST_EQUAL(layer1->mName, "Layer1");
-	TEST_EQUAL(layer1->mObjects.size(), 1);
-	auto obj1 = layer1->mObjects[0];
+	TEST_EQUAL(layer1->name(), "Layer1");
+	TEST_EQUAL(layer1->objects().size(), 1u);
+	auto obj1 = layer1->objects()[0];
 	TEST_EQUAL(obj1->mObjectType, Dxf::otPolyline);
 	auto pl1 = std::static_pointer_cast<Dxf::Polyline>(obj1);
 	TEST_EQUAL(pl1->mVertices.size(), 5u);

@@ -5,7 +5,7 @@
 
 /*
 // NOTE on colors in a DXF file:
-if a color is not given, it means ByLayer
+if a color is not given (stored as -1 in Dxf::Primitive::mColor), it means ByLayer
 if color number == 0, it means ByBlock
 valid color indices are in the range 1-254
 A DXF color palette is provided as a global const
@@ -21,7 +21,7 @@ namespace Dxf
 
 
 
-const uint32_t gDxfColors[] =
+const uint32_t gColors[] =
 {
 	// basic colors:
 	/*   0 */ 0x000000,  // ByBlock - use black for display
@@ -286,7 +286,7 @@ const uint32_t gDxfColors[] =
 	/* 255 */ 0xffffff,
 } ;
 
-const size_t gNumDxfColors = sizeof(gDxfColors) / sizeof(*gDxfColors);
+const size_t gNumColors = sizeof(gColors) / sizeof(*gColors);
 
 
 
@@ -1158,6 +1158,16 @@ PrimitivePtr Layer::removeObjByIndex(size_t aIndex)
 
 
 
+void Layer::removeObj(Primitive * aObject)
+{
+	auto cmp = [aObject](const PrimitivePtr aStoredObj){ return (aStoredObj.get() == aObject); };
+	mObjects.erase(std::remove_if(mObjects.begin(), mObjects.end(), cmp), mObjects.end());
+}
+
+
+
+
+
 void Layer::addObject(PrimitivePtr && aObject)
 {
 	mObjects.push_back(std::move(aObject));
@@ -1213,7 +1223,7 @@ std::shared_ptr<Layer> Drawing::layerByName(const std::string & aName) const
 {
 	for (const auto & lay: mLayers)
 	{
-		if (lay->mName == aName)
+		if (lay->name() == aName)
 		{
 			return lay;
 		}

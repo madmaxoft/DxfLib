@@ -45,10 +45,6 @@ class Parser
 	/** The LineExtractor that reads the data source and splits it into individual lines. */
 	LineExtractor mLineExtractor;
 
-	/** The line currently being processed from the stream.
-	Used for reporting errors. */
-	unsigned mCurrentLine;
-
 	/** The drawing into which the parsed data is applied. */
 	std::shared_ptr<Drawing> mDrawing;
 
@@ -58,9 +54,9 @@ class Parser
 
 	/** Unified entrypoint for when an error occurs.
 	Put a debugger breakpoint here in order to debug mysterious errors. */
-	[[noreturn]] void throwError(unsigned aLineNumber, std::string && aMessage)
+	[[noreturn]] void throwError(std::string && aMessage)
 	{
-		throw Error(aLineNumber, std::move(aMessage));
+		throw Error(mLineExtractor.currentLineNum(), std::move(aMessage));
 	}
 
 
@@ -109,7 +105,7 @@ class Parser
 	{
 		if (aStr.empty())
 		{
-			throwError(mCurrentLine, "invalid number: <empty string>");
+			throwError("invalid number: <empty string>");
 		}
 
 		size_t i = 0;
@@ -130,17 +126,17 @@ class Parser
 			{
 				if ((aStr[i] < '0') || (aStr[i] > '9'))
 				{
-					throwError(mCurrentLine, fmt::format("Invalid character in number: \"{}\"", aStr[i]));
+					throwError(fmt::format("Invalid character in number: \"{}\"", aStr[i]));
 				}
 				if (std::numeric_limits<T>::max() / 10 < result)
 				{
-					throwError(mCurrentLine, "Number is too large.");
+					throwError("Number is too large.");
 				}
 				result *= 10;
 				T digit = static_cast<T>(aStr[i] - '0');
 				if (std::numeric_limits<T>::max() - digit < result)
 				{
-					throwError(mCurrentLine, "Number is too large.");
+					throwError("Number is too large.");
 				}
 				result += digit;
 			}
@@ -150,24 +146,24 @@ class Parser
 			// Unsigned result cannot be signed!
 			if (!std::numeric_limits<T>::is_signed)
 			{
-				throwError(mCurrentLine, "Unexpected negative number");
+				throwError("Unexpected negative number");
 			}
 
 			for (size_t size = aStr.size(); i < size; i++)
 			{
 				if ((aStr[i] < '0') || (aStr[i] > '9'))
 				{
-					throwError(mCurrentLine, fmt::format("Invalid character in number: \"{}\"", aStr[i]));
+					throwError(fmt::format("Invalid character in number: \"{}\"", aStr[i]));
 				}
 				if (std::numeric_limits<T>::min() / 10 > result)
 				{
-					throwError(mCurrentLine, "Number is too large.");
+					throwError("Number is too large.");
 				}
 				result *= 10;
 				T digit = static_cast<T>(aStr[i] - '0');
 				if (std::numeric_limits<T>::min() + digit > result)
 				{
-					throwError(mCurrentLine, "Number is too large.");
+					throwError("Number is too large.");
 				}
 				result -= digit;
 			}
@@ -184,7 +180,7 @@ class Parser
 	{
 		if (aStr.empty())
 		{
-			throwError(mCurrentLine, "invalid number: <empty string>");
+			throwError("invalid number: <empty string>");
 		}
 
 		try
@@ -194,7 +190,7 @@ class Parser
 		}
 		catch (const std::exception & exc)
 		{
-			throwError(mCurrentLine, fmt::format("Cannot parse number: {}", exc.what()));
+			throwError(fmt::format("Cannot parse number: {}", exc.what()));
 		}
 	}
 
@@ -207,6 +203,11 @@ class Parser
 	std::pair<int, std::string> readNext()
 	{
 		auto groupCodeStr = mLineExtractor.getNextLine();
+		auto isWhiteSpace = [](const char aChar)
+		{
+			return ((aChar == ' ') || (aChar == '\t'));
+		};
+		groupCodeStr.erase(std::remove_if(groupCodeStr.begin(), groupCodeStr.end(), isWhiteSpace), groupCodeStr.end());  // Remove any whitespace from the line
 		auto groupCode = stringToInt<int>(groupCodeStr);
 		auto value = mLineExtractor.getNextLine();
 		return {groupCode, value};
@@ -275,13 +276,13 @@ class Parser
 					}
 					else
 					{
-						throwError(mCurrentLine, "Unexpected item in TABLES section");
+						throwError("Unexpected item in TABLES section");
 					}
 					break;
 				}
 				default:
 				{
-					throwError(mCurrentLine, "Unexpected group code.");
+					throwError("Unexpected group code.");
 				}
 			}
 		}
@@ -350,7 +351,7 @@ class Parser
 				{
 					if (currentLayer != nullptr)
 					{
-						throwError(mCurrentLine, "Layer entry has a duplicate name (group 2)");
+						throwError("Layer entry has a duplicate name (group 2)");
 					}
 					currentLayer = mDrawing->addLayer(value);
 					break;
@@ -359,7 +360,7 @@ class Parser
 				{
 					if (currentLayer != nullptr)
 					{
-						currentLayer->mDefaultColor = stringToInt<Color>(trimWhitespace(value));
+						currentLayer->setDefaultColor(stringToInt<Color>(trimWhitespace(value)));
 					}
 					break;
 				}
@@ -554,7 +555,7 @@ class Parser
 
 						default:
 						{
-							throwError(mCurrentLine, fmt::format("Unhandled object type with groupcode 10: {}", cur->mObjectType));
+							throwError(fmt::format("Unhandled object type with groupcode 10: {}", cur->mObjectType));
 							break;
 						}
 					}
@@ -606,7 +607,7 @@ class Parser
 
 						default:
 						{
-							throwError(mCurrentLine, fmt::format("Unhandled object type with groupcode 20: {}", cur->mObjectType));
+							throwError(fmt::format("Unhandled object type with groupcode 20: {}", cur->mObjectType));
 						}
 					}
 					break;
@@ -628,7 +629,7 @@ class Parser
 
 						default:
 						{
-							throwError(mCurrentLine, fmt::format("Unhandled object type with groupcode 21: {}", cur->mObjectType));
+							throwError(fmt::format("Unhandled object type with groupcode 21: {}", cur->mObjectType));
 							break;
 						}
 					}
@@ -655,7 +656,7 @@ class Parser
 
 						default:
 						{
-							throwError(mCurrentLine, fmt::format("Unhandled object type with groupcode 30: {}", cur->mObjectType));
+							throwError(fmt::format("Unhandled object type with groupcode 30: {}", cur->mObjectType));
 							break;
 						}
 					}
@@ -678,7 +679,7 @@ class Parser
 
 						default:
 						{
-							throwError(mCurrentLine, fmt::format("Unhandled object type with groupcode 31: {}", cur->mObjectType));
+							throwError(fmt::format("Unhandled object type with groupcode 31: {}", cur->mObjectType));
 							break;
 						}
 					}
@@ -714,7 +715,7 @@ class Parser
 						case otPoint:
 						default:
 						{
-							throwError(mCurrentLine, fmt::format("Unhandled object type with groupcode 38: {}", cur->mObjectType));
+							throwError(fmt::format("Unhandled object type with groupcode 38: {}", cur->mObjectType));
 						}
 					}
 					break;
@@ -753,7 +754,7 @@ class Parser
 						case otPoint:
 						default:
 						{
-							throwError(mCurrentLine, fmt::format("Unhandled object type with groupcode 70: {}", cur->mObjectType));
+							throwError(fmt::format("Unhandled object type with groupcode 70: {}", cur->mObjectType));
 						}
 					}  // switch (cur->mObjectType)
 					break;

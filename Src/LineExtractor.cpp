@@ -1,5 +1,7 @@
 #include "LineExtractor.hpp"
 
+#include <cstring>
+
 
 
 

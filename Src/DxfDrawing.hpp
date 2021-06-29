@@ -804,7 +804,7 @@ public:
 Contains (and owns) the objects that belong to this layer. */
 class Layer
 {
-public:
+protected:
 	/** The objects contained within the layer. */
 	PrimitivePtrs mObjects;
 
@@ -823,14 +823,14 @@ public:
 	Extent mExtent;
 
 
+public:
+
 	/** Creates a new empty layer of the specified name. */
 	Layer(Drawing & aParentDrawing, const std::string & aName);
 
 	/** Removes all objects from this layer. */
 	void clear();
 
-	/** Returns the currently cached extent of the layer. */
-	const Extent & extent() const { return mExtent; }
 
 	/** Recalculates the mExtent from all object of this layer.
 	This is only needed when an object is modified *after* being added via addObject(). */
@@ -840,6 +840,10 @@ public:
 	Ignored if the index is invalid. */
 	PrimitivePtr removeObjByIndex(size_t aIndex);
 
+	/** Removes the specified object.
+	Ignored if the object is not present in the layer. */
+	void removeObj(Primitive * aObject);
+
 	/** Adds the specified object to the layer.
 	If the object is modified after this call, you should call updateExtent(). */
 	void addObject(PrimitivePtr && aObject);
@@ -848,7 +852,16 @@ public:
 	If the object is modified after this call, you should call updateExtent(). */
 	void addObject(const PrimitivePtr & aObject);
 
+	const PrimitivePtrs & objects() const { return mObjects; }
+	const Drawing & parentDrawing() const { return mParentDrawing; }
+	Color defaultColor() const { return mDefaultColor; }
 	const std::string & name() const { return mName; }
+
+	/** Returns the currently cached extent of the layer. */
+	const Extent & extent() const { return mExtent; }
+
+	void setDefaultColor(Color aColor) { mDefaultColor = aColor; }
+	void setName(const std::string & aName) { mName = aName; }
 } ;
 
 
@@ -904,14 +917,17 @@ public:
 
 
 
+/** The DXF color values, as 0x00BBGGRR constants, indexed by the color index from the file format. */
+extern const uint32_t gColors[];
+
+/** Number of entries in the gColors array. */
+extern const size_t gNumColors;
+
+
+
+
+
 #if 0
-extern const uint32_t gDXFColors[];
-extern const size_t gNumDXFColors;
-
-
-
-
-
 CONSTEXPR COLORREF DXFColorToRGB(Color iColor) CONST_FUNCTION;
 std::string DXFFixLayerName(const std::string & iName);
 void    DXFFixLayerName(std::string & Name);
@@ -929,7 +945,7 @@ void CreateTextArrow(Layer * iParent, double & textX, double & textY, double & t
 void      DXF_FillColorCombo(HWND iCombo, Color iCurrentColor, LPCTSTR iTxtByLayer, LPCTSTR iTextByBlock, LPCTSTR iTextGeneric);
 Color DXF_GetColorComboVal(HWND iCombo);
 void      DXF_DrawColorComboItem(HWND iCombo, LPDRAWITEMSTRUCT dis);  // processed from inside WM_DRAWITEM
-#endif 0
+#endif
 
 
 

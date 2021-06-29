@@ -18,9 +18,9 @@ namespace Dxf::Parser
 /** Exception that is thrown when an error is encountered while parsing lines from a datasource.
 Contains details about the error encountered. */
 class Error:
-	public std::exception
+	public std::runtime_error
 {
-	using Super = std::exception;
+	using Super = std::runtime_error;
 
 	/** The line number where the error was detected. */
 	unsigned mLineNumber;
@@ -67,6 +67,10 @@ public:
 	/** Returns the next line of input data from the data source.
 	Throws an exception on error, either from the DataSource itself or a Dxf::Util::LineError. */
 	std::string getNextLine();
+
+	/** Returns the current line number.
+	Useful when reporting errors. */
+	unsigned currentLineNum() const { return mCurrentLineNum; }
 
 
 protected:

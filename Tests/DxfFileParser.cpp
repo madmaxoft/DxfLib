@@ -33,7 +33,7 @@ int main(int argc, char * argv[])
 	std::cout << "Layers:" << std::endl;
 	for (const auto & lay: drawing->layers())
 	{
-		std::cout << "  " << lay->name() << "\t(num entities: " << lay->mObjects.size() << ")" << std::endl;
+		std::cout << "  " << lay->name() << "\t(num entities: " << lay->objects().size() << ")" << std::endl;
 	}
 	std::cout << "All done." << std::endl;
 	return 0;
