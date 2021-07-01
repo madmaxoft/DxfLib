@@ -174,10 +174,12 @@ public:
 Provides operations to modify and query the box. */
 class Extent
 {
-public:
 	bool mIsEmpty;
 	Coords mMin;
 	Coords mMax;
+
+
+public:
 
 	/** The default constructor, creates an empty instance. */
 	Extent():
@@ -226,6 +228,10 @@ public:
 	Extent & operator = (const Extent & aOther) = default;
 
 	// TODO: Other constructors
+
+	bool isEmpty() const { return mIsEmpty; }
+	const Coords & minCoord() const { return mMin; }
+	const Coords & maxCoord() const { return mMax; }
 
 	/** Expands the Extent so that it contains aPt as well. */
 	inline void expandTo(const Coords & aPt)
