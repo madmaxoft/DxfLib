@@ -353,7 +353,14 @@ class Parser
 					{
 						throwError("Layer entry has a duplicate name (group 2)");
 					}
-					currentLayer = mDrawing->addLayer(value);
+					try
+					{
+						currentLayer = mDrawing->addLayer(value);
+					}
+					catch (Dxf::Drawing::LayerAlreadyExists & exc)
+					{
+						throwError(fmt::format("Duplicate layer: {}", exc.what()));
+					}
 					break;
 				}
 				case 62:
