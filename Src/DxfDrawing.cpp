@@ -1065,6 +1065,16 @@ Extent Solid::extent() const
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Circle:
 
+Circle::Circle():
+	Super(otCircle),
+	mRadius(0)
+{
+}
+
+
+
+
+
 Circle::Circle(Coords && aPos, Coord && aRadius, Color aColor):
 	Super(otCircle, std::move(aPos), aColor),
 	mRadius(aRadius)
@@ -1087,9 +1097,21 @@ Extent Circle::extent() const
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Arc:
 
-Arc::Arc(Coords && aCenterPos, Coord && aDiameter, Coord && aStartAngle, Coord  && aEndAngle, Color aColor):
+Arc::Arc():
+	Super(otArc),
+	mRadius(0),
+	mStartAngle(0),
+	mEndAngle(0)
+{
+}
+
+
+
+
+
+Arc::Arc(Coords && aCenterPos, Coord && aRadius, Coord && aStartAngle, Coord  && aEndAngle, Color aColor):
 	Super(otArc, std::move(aCenterPos), aColor),
-	mDiameter(std::move(aDiameter)),
+	mRadius(std::move(aRadius)),
 	mStartAngle(std::move(aStartAngle)),
 	mEndAngle(std::move(aEndAngle))
 {
@@ -1102,7 +1124,7 @@ Arc::Arc(Coords && aCenterPos, Coord && aDiameter, Coord && aStartAngle, Coord  
 Extent Arc::extent() const
 {
 	// TODO: Proper extent, using the endpoint angles
-	return {mPos - Coords(mDiameter, mDiameter), mPos + Coords(mDiameter, mDiameter)};
+	return {mPos - Coords(mRadius, mRadius), mPos + Coords(mRadius, mRadius)};
 }
 
 

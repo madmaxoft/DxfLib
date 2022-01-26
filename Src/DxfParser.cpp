@@ -467,6 +467,18 @@ class Parser
 					{
 						cur = std::make_shared<Point>();
 					}
+					else if (isSameStringIgnoreCase(value, "arc"))
+					{
+						cur = std::make_shared<Arc>();
+					}
+					else if (isSameStringIgnoreCase(value, "circle"))
+					{
+						cur = std::make_shared<Circle>();
+					}
+					else
+					{
+						// DEBUG: std::cout << "Unhandled entity: " << value << "\n";
+					}
 					break;
 				}  // case 0
 
@@ -499,8 +511,10 @@ class Parser
 							case otVertex:
 							case otPoint:
 							default:
+							{
 								// do nothing
 								break;
+							}
 						}
 					}
 					break;
@@ -554,6 +568,8 @@ class Parser
 						case otPoint:
 						case otVertex:
 						case otText:
+						case otCircle:
+						case otArc:
 						{
 							cur->mPos.mX = stringToDouble(value);
 							break;
@@ -606,6 +622,8 @@ class Parser
 						case otPoint:
 						case otVertex:
 						case otText:
+						case otCircle:
+						case otArc:
 						{
 							cur->mPos.mY = stringToDouble(value);
 							break;
@@ -655,6 +673,8 @@ class Parser
 						case otPoint:
 						case otVertex:
 						case otText:
+						case otCircle:
+						case otArc:
 						{
 							cur->mPos.mZ = stringToDouble(value);
 							break;
@@ -727,6 +747,74 @@ class Parser
 					}
 					break;
 				}  // case 38
+
+				case 40:
+				{
+					if (cur == nullptr)
+					{
+						break;
+					}
+					switch (cur->mObjectType)
+					{
+						case otCircle:
+						{
+							std::static_pointer_cast<Circle>(cur)->mRadius = stringToDouble(value);
+							break;
+						}
+						case otArc:
+						{
+							std::static_pointer_cast<Arc>(cur)->mRadius = stringToDouble(value);
+							break;
+						}
+						default:
+						{
+							throwError(fmt::format("Unhandled object type with groupcode 40: {}", cur->mObjectType));
+						}
+					}
+					break;
+				}  // case 40
+
+				case 50:
+				{
+					if (cur == nullptr)
+					{
+						break;
+					}
+					switch (cur->mObjectType)
+					{
+						case otArc:
+						{
+							std::static_pointer_cast<Arc>(cur)->mStartAngle = stringToDouble(value);
+							break;
+						}
+						default:
+						{
+							throwError(fmt::format("Unhandled object type with groupcode 50: {}", cur->mObjectType));
+						}
+					}
+					break;
+				}  // case 50
+
+				case 51:
+				{
+					if (cur == nullptr)
+					{
+						break;
+					}
+					switch (cur->mObjectType)
+					{
+						case otArc:
+						{
+							std::static_pointer_cast<Arc>(cur)->mEndAngle = stringToDouble(value);
+							break;
+						}
+						default:
+						{
+							throwError(fmt::format("Unhandled object type with groupcode 51: {}", cur->mObjectType));
+						}
+					}
+					break;
+				}  // case 51
 
 				case 70:
 				{

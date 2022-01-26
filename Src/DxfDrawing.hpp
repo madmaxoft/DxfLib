@@ -488,6 +488,11 @@ public:
 	Coord mRadius;
 
 
+	/** Creates a new empty instance, with zero radius.
+	Used mainly bby the parser. */
+	Circle();
+
+	/** Creates a new initialized instance. */
 	Circle(Coords && aCenterPos, Coord && aRadius, Color aColor = COLOR_BYLAYER);
 
 	// Primitive overrides:
@@ -508,11 +513,17 @@ class Arc:
 
 public:
 
-	Coord mDiameter;
-	Coord mStartAngle;
-	Coord mEndAngle;
+	Coord mRadius;
+	Coord mStartAngle;  ///< In degrees
+	Coord mEndAngle;    ///< In degrees
 
-	Arc(Coords && aCenterPos, Coord && aDiameter, Coord && aStartAngle, Coord  && aEndAngle, Color aColor = COLOR_BYLAYER);
+
+	/** Creates a new empty instance, with zero radius and angles.
+	Used mainly by the parser. */
+	Arc();
+
+	/** Creates a new initialized instance. */
+	Arc(Coords && aCenterPos, Coord && aRadius, Coord && aStartAngle, Coord  && aEndAngle, Color aColor = COLOR_BYLAYER);
 
 	// Primitive overrides:
 	virtual Extent extent() const override;
