@@ -689,7 +689,8 @@ class Polyline:
 
 public:
 
-	PolylineFlags mFlags;
+	/** Bitwise combination of PolylineFlags. */
+	int mFlags;
 
 
 	/** Creates an empty polyline. */
@@ -713,7 +714,9 @@ class LWPolyline:
 
 public:
 
+	/** Bitwise combination of PolylineFlags. */
 	int mFlags;
+
 
 	/** Creates an empty instance. */
 	LWPolyline(Color aColor = COLOR_BYLAYER, Coord aWidth = 0):
