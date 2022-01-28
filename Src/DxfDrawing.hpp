@@ -382,6 +382,9 @@ class Vertex:
 
 public:
 
+	Coord mBulge;
+
+
 	/** Creates a new empty instance.
 	Used mainly by the parser. */
 	Vertex():

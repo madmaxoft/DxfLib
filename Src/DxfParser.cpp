@@ -774,6 +774,36 @@ class Parser
 					break;
 				}  // case 40
 
+				case 42:
+				{
+					if (cur == nullptr)
+					{
+						break;
+					}
+					switch (cur->mObjectType)
+					{
+						case otVertex:
+						{
+							std::static_pointer_cast<Vertex>(cur)->mBulge = stringToDouble(value);
+							break;
+						}
+						case otLWPolyline:
+						{
+							auto polyline = std::static_pointer_cast<LWPolyline>(cur);
+							if (!polyline->mVertices.empty())
+							{
+								polyline->mVertices.back().mBulge = stringToDouble(value);
+							}
+							break;
+						}
+						default:
+						{
+							throwError(fmt::format("Unhandled ob ject type with groupcode 42: {}", cur->mObjectType));
+						}
+					}
+					break;
+				}  // case 42
+
 				case 50:
 				{
 					if (cur == nullptr)
